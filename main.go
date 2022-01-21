@@ -11,7 +11,7 @@ func main() {
 	for {
 		select {
 		case t := <-ticker.C:
-			fmt.Println("==============", t.String())
+			fmt.Println("=====+++=========", t.String())
 		}
 	}
 }
