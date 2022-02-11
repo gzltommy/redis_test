@@ -2,16 +2,19 @@ package main
 
 import (
 	"fmt"
-	"time"
+	"redis_test/redisclient"
 )
 
 func main() {
-	ticker := time.NewTicker(time.Second * 1)
+	fmt.Println("----", redisclient.HmSet("user_online_state", 100, 1, 200, 1, 300, 1))
 
-	for {
-		select {
-		case t := <-ticker.C:
-			fmt.Println("=====+++=========", t.String())
-		}
+	hv, err := redisclient.HmGet("user_online_state", 100, 200, 300, 400, 500)
+	if err != nil {
+		fmt.Printf("err is %v\n", err)
+	}
+
+	fmt.Println("=============", hv)
+	for _, v := range hv {
+		fmt.Printf("%v\n", v)
 	}
 }
