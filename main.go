@@ -6,15 +6,28 @@ import (
 )
 
 func main() {
-	fmt.Println("----", redisclient.HmSet("user_online_state", 100, 1, 200, 1, 300, 1))
+	redisclient.Set(fmt.Sprintf("user_online_state_%d", 100), 0, []byte{1})
+	redisclient.Set(fmt.Sprintf("user_online_state_%d", 200), 0, []byte{1})
+	redisclient.Set(fmt.Sprintf("user_online_state_%d", 300), 0, []byte{1})
+	redisclient.Set(fmt.Sprintf("user_online_state_%d", 400), 0, []byte{1})
+	redisclient.Set(fmt.Sprintf("user_online_state_%d", 500), 0, []byte{1})
 
-	hv, err := redisclient.HmGet("user_online_state", 100, 200, 300, 400, 500)
+	keys := make([]interface{}, 0, 6)
+	for i := 3; i <= 8; i++ {
+		keys = append(keys, fmt.Sprintf("user_online_state_%d00", i))
+	}
+
+	hv, err := redisclient.MGet(keys...)
 	if err != nil {
 		fmt.Printf("err is %v\n", err)
 	}
 
-	fmt.Println("=============", hv)
 	for _, v := range hv {
-		fmt.Printf("%v\n", v)
+		if v == nil {
+			fmt.Println(v, 0)
+		} else {
+			fmt.Println(v, 1)
+		}
 	}
+
 }

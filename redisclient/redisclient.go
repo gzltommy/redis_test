@@ -81,6 +81,16 @@ func Get(key string) ([]byte, error) {
 	return val, KeyNotExist
 }
 
+func MGet(keys ...interface{}) ([]interface{}, error) {
+	if redisPool == nil {
+		return nil, redisNotInitErr
+	}
+	c := redisPool.Get()
+	defer c.Close()
+
+	return redis.Values(c.Do("mget", keys...))
+}
+
 func Set(key string, ttl int64, value []byte) error {
 	if redisPool == nil {
 		return redisNotInitErr
