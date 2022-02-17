@@ -6,28 +6,22 @@ import (
 )
 
 func main() {
-	redisclient.Set(fmt.Sprintf("user_online_state_%d", 100), 0, []byte{1})
-	redisclient.Set(fmt.Sprintf("user_online_state_%d", 200), 0, []byte{1})
-	redisclient.Set(fmt.Sprintf("user_online_state_%d", 300), 0, []byte{1})
-	redisclient.Set(fmt.Sprintf("user_online_state_%d", 400), 0, []byte{1})
-	redisclient.Set(fmt.Sprintf("user_online_state_%d", 500), 0, []byte{1})
+	redisclient.ZAdd("fans_list", 1, 100, 2, 200, 3, 300)
 
-	keys := make([]interface{}, 0, 6)
-	for i := 3; i <= 8; i++ {
-		keys = append(keys, fmt.Sprintf("user_online_state_%d00", i))
-	}
-
-	hv, err := redisclient.MGet(keys...)
+	hv, err := redisclient.ZRange("fans_list", 0, 5)
 	if err != nil {
 		fmt.Printf("err is %v\n", err)
 	}
 
 	for _, v := range hv {
+		fmt.Println("+++", v)
 		if v == nil {
-			fmt.Println(v, 0)
+			fmt.Println("=== nil ====", v)
 		} else {
-			fmt.Println(v, 1)
+			vv := v.([]byte)
+			fmt.Println("********", string(vv))
 		}
 	}
 
+	redisclient.ZRem("fans_list", 200)
 }

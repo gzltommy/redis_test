@@ -290,7 +290,7 @@ func PSubscribe(channel string, callback subscribeFunc) error {
 	return nil
 }
 
-func HmSet(key string, kvPairs ...interface{}) error {
+func HmSet(key string, ttl int64, kvPairs ...interface{}) error {
 	if redisPool == nil {
 		return redisNotInitErr
 	}
@@ -298,6 +298,11 @@ func HmSet(key string, kvPairs ...interface{}) error {
 	defer c.Close()
 	if _, err := c.Do("hmset", append([]interface{}{key}, kvPairs...)...); err != nil {
 		return err
+	}
+	if ttl > 0 {
+		if _, err := c.Do("expire", key, ttl); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -318,5 +323,42 @@ func HmDel(key string, ks ...interface{}) error {
 	c := redisPool.Get()
 	defer c.Close()
 	_, err := c.Do("hdel", append([]interface{}{key}, ks...)...)
+	return err
+}
+
+// smPairs：score1 member1 [score2 member2]
+func ZAdd(key string, ttl int64, smPairs ...interface{}) error {
+	if redisPool == nil {
+		return redisNotInitErr
+	}
+	c := redisPool.Get()
+	defer c.Close()
+	if _, err := c.Do("zadd", append([]interface{}{key}, smPairs...)...); err != nil {
+		return err
+	}
+	if ttl > 0 {
+		if _, err := c.Do("expire", key, ttl); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func ZRange(key string, start, stop int) ([]interface{}, error) {
+	if redisPool == nil {
+		return nil, redisNotInitErr
+	}
+	c := redisPool.Get()
+	defer c.Close()
+	return redis.Values(c.Do("zrange", key, start, stop))
+}
+
+func ZRem(key string, ms ...interface{}) error {
+	if redisPool == nil {
+		return redisNotInitErr
+	}
+	c := redisPool.Get()
+	defer c.Close()
+	_, err := c.Do("zrem", append([]interface{}{key}, ms...)...)
 	return err
 }
