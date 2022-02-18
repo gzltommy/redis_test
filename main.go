@@ -1,27 +1,23 @@
 package main
 
-import (
-	"fmt"
-	"redis_test/redisclient"
-)
+import "fmt"
 
 func main() {
-	redisclient.ZAdd("fans_list", 1, 100, 2, 200, 3, 300)
+	vv := []int{1, 2, 3}
 
-	hv, err := redisclient.ZRange("fans_list", 0, 5)
-	if err != nil {
-		fmt.Printf("err is %v\n", err)
-	}
+	for i := 0; i < len(vv); {
+		if vv[i] == 2 {
 
-	for _, v := range hv {
-		fmt.Println("+++", v)
-		if v == nil {
-			fmt.Println("=== nil ====", v)
+			vv = append(vv[:i], vv[i+1:]...)
 		} else {
-			vv := v.([]byte)
-			fmt.Println("********", string(vv))
+			i++
 		}
+
 	}
 
-	redisclient.ZRem("fans_list", 200)
+	//for i, _ := range vv {
+	//	vv = append(vv[:i], vv[i+1:]...)
+	//
+	//}
+	fmt.Println("----", vv)
 }
