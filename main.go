@@ -19,5 +19,6 @@ func main() {
 	//	vv = append(vv[:i], vv[i+1:]...)
 	//
 	//}
+
 	fmt.Println("----", vv)
 }
