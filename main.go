@@ -1,24 +1,26 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	redis "redis_test/redisclient"
+	"time"
+)
 
 func main() {
-	vv := []int{1, 2, 3}
+	id1 := "adfasfasfasf"
+	err := redis.Lock(id1, "AAA", 30)
+	fmt.Println("=======", err)
 
-	for i := 0; i < len(vv); {
-		if vv[i] == 2 {
+	go func() {
 
-			vv = append(vv[:i], vv[i+1:]...)
-		} else {
-			i++
-		}
+		id2 := "adfasfasf666asf"
+		err = redis.Unlock(id2, "AAA")
+		fmt.Println("-----------", err)
 
-	}
+		err = redis.Lock(id2, "AAA", 30)
+		fmt.Println("----222-------", err)
+	}()
 
-	//for i, _ := range vv {
-	//	vv = append(vv[:i], vv[i+1:]...)
-	//
-	//}
-
-	fmt.Println("----", vv)
+	time.Sleep(time.Second * 1888888)
+	return
 }

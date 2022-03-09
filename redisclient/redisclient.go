@@ -13,6 +13,7 @@ import (
 var (
 	redisPool       *redis.Pool
 	redisNotInitErr = errors.New("redis is not initialized.")
+	redisUnlockErr  = errors.New("only the thread holding the lock can unlock")
 	KeyNotExist     = errors.New("key does not exist")
 )
 
@@ -192,7 +193,32 @@ func Del(key string) error {
 	return err
 }
 
-func LPush(key string, args ...[]byte) (int64, error) {
+func RPush(key string, ttl int64, args ...[]byte) (int64, error) {
+	if redisPool == nil {
+		panic(nil)
+	}
+	c := redisPool.Get()
+	defer c.Close()
+	vs := []interface{}{}
+	vs = append(vs, key)
+	for _, v := range args {
+		vs = append(vs, v)
+	}
+	reply, err := redis.Int64(c.Do("RPUSH", vs...))
+	if err != nil {
+		return 0, err
+	}
+
+	if ttl > 0 {
+		if _, err := c.Do("expire", key, ttl); err != nil {
+			return 0, err
+		}
+	}
+
+	return reply, nil
+}
+
+func LPush(key string, ttl int64, args ...[]byte) (int64, error) {
 	if redisPool == nil {
 		panic(nil)
 	}
@@ -204,6 +230,11 @@ func LPush(key string, args ...[]byte) (int64, error) {
 		vs = append(vs, v)
 	}
 	reply, err := redis.Int64(c.Do("LPUSH", vs...))
+	if ttl > 0 {
+		if _, err := c.Do("expire", key, ttl); err != nil {
+			return 0, err
+		}
+	}
 	return reply, err
 }
 
@@ -253,7 +284,7 @@ func PubRedisList(queueName string, payload interface{}) error {
 	if err != nil {
 		return err
 	}
-	_, err = LPush(queueName, bytes)
+	_, err = LPush(queueName, 0, bytes)
 	if err != nil {
 		return err
 	}
@@ -344,6 +375,15 @@ func ZAdd(key string, ttl int64, smPairs ...interface{}) error {
 	return nil
 }
 
+func LIndex(key string, index int) (interface{}, error) {
+	if redisPool == nil {
+		return nil, redisNotInitErr
+	}
+	c := redisPool.Get()
+	defer c.Close()
+	return c.Do("LINDEX", key, index)
+}
+
 func ZRange(key string, start, stop int) ([]interface{}, error) {
 	if redisPool == nil {
 		return nil, redisNotInitErr
@@ -361,4 +401,55 @@ func ZRem(key string, ms ...interface{}) error {
 	defer c.Close()
 	_, err := c.Do("zrem", append([]interface{}{key}, ms...)...)
 	return err
+}
+
+func LRange(key string, start, stop int) ([]interface{}, error) {
+	if redisPool == nil {
+		return nil, redisNotInitErr
+	}
+	c := redisPool.Get()
+	defer c.Close()
+	return redis.Values(c.Do("LRANGE", key, start, stop))
+}
+
+func LLen(key string) (int64, error) {
+	if redisPool == nil {
+		return 0, redisNotInitErr
+	}
+	c := redisPool.Get()
+	defer c.Close()
+	return redis.Int64(c.Do("LLEN", key))
+}
+
+// 自旋式，不可重入，同步阻塞锁
+func Lock(threadID string, lockName string, ttl int64) error {
+	if redisPool == nil {
+		return redisNotInitErr
+	}
+	c := redisPool.Get()
+	defer c.Close()
+	for {
+		result, err := redis.String(c.Do("SET", lockName, threadID, "EX", ttl, "NX"))
+		if err == nil && result == "OK" {
+			return nil
+		} else {
+			time.Sleep(time.Microsecond)
+		}
+	}
+}
+
+func Unlock(threadID string, lockName string) error {
+	if redisPool == nil {
+		return redisNotInitErr
+	}
+	c := redisPool.Get()
+	defer c.Close()
+
+	reply, err := redis.String(c.Do("GET", lockName))
+	if err == nil && reply == threadID {
+		_, err = c.Do("DEL", lockName)
+		return err
+	} else {
+		return redisUnlockErr
+	}
 }

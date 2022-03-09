@@ -8,4 +8,5 @@ require (
 	github.com/go-redis/redis v6.15.9+incompatible // indirect
 	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/shiena/ansicolor v0.0.0-20151119151921-a422bbe96644 // indirect
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 )
