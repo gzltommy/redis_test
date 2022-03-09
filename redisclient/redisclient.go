@@ -444,7 +444,6 @@ func Unlock(threadID string, lockName string) error {
 	}
 	c := redisPool.Get()
 	defer c.Close()
-
 	reply, err := redis.String(c.Do("GET", lockName))
 	if err == nil && reply == threadID {
 		_, err = c.Do("DEL", lockName)
